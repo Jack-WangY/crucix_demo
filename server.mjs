@@ -16,6 +16,7 @@ import { createLLMProvider } from './lib/llm/index.mjs';
 import { generateLLMIdeas } from './lib/llm/ideas.mjs';
 import { TelegramAlerter } from './lib/alerts/telegram.mjs';
 import { DiscordAlerter } from './lib/alerts/discord.mjs';
+import { getAreas, getTopics, createArea, updateArea, addTopic, updateTopic } from './lib/jarvis/areas.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = __dirname;
@@ -278,6 +279,52 @@ app.get('/api/health', (req, res) => {
     refreshIntervalMinutes: config.refreshIntervalMinutes,
     language: currentLanguage,
   });
+});
+
+// Jarvis subject area management
+app.get('/api/jarvis/areas', (req, res) => {
+  try {
+    const areas = getAreas().map(a => ({ ...a, topics: getTopics(a.id) }));
+    res.json({ areas });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+app.post('/api/jarvis/areas', express.json(), (req, res) => {
+  try {
+    const area = createArea(req.body);
+    res.status(201).json(area);
+  } catch (e) {
+    res.status(400).json({ error: e.message });
+  }
+});
+
+app.patch('/api/jarvis/areas/:id', express.json(), (req, res) => {
+  try {
+    const area = updateArea(req.params.id, req.body);
+    res.json(area);
+  } catch (e) {
+    res.status(400).json({ error: e.message });
+  }
+});
+
+app.post('/api/jarvis/areas/:id/topics', express.json(), (req, res) => {
+  try {
+    const topic = addTopic(req.params.id, req.body);
+    res.status(201).json(topic);
+  } catch (e) {
+    res.status(400).json({ error: e.message });
+  }
+});
+
+app.patch('/api/jarvis/topics/:id', express.json(), (req, res) => {
+  try {
+    updateTopic(req.params.id, req.body);
+    res.json({ ok: true });
+  } catch (e) {
+    res.status(400).json({ error: e.message });
+  }
 });
 
 // API: available locales

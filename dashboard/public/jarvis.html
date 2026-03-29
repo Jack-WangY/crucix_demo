@@ -149,6 +149,22 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:var(--s
 .map-loading-card{display:flex;flex-direction:column;align-items:center;gap:10px;padding:16px 18px;border:1px solid rgba(68,204,255,0.18);background:rgba(6,14,22,0.88);box-shadow:0 12px 32px rgba(0,0,0,0.35)}
 .map-loading-ring{width:28px;height:28px;border:2px solid rgba(68,204,255,0.16);border-top-color:var(--accent2);border-radius:50%;animation:spin 1s linear infinite}
 .map-loading-text{font-family:var(--mono);font-size:10px;letter-spacing:0.12em;text-transform:uppercase;color:var(--accent2)}
+/* JARVIS PANEL */
+.jarvis-panel{border:1px solid rgba(100,240,200,0.2);background:rgba(0,255,150,0.02);padding:12px;margin-top:10px}
+.jarvis-title{font-family:var(--mono);font-size:11px;letter-spacing:0.15em;color:var(--accent);text-transform:uppercase;font-weight:700}
+.jarvis-heatmap{display:grid;grid-template-columns:160px repeat(4,1fr);gap:2px;margin-top:10px;font-family:var(--mono);font-size:10px}
+.jh-header{padding:4px 6px;color:var(--dim);letter-spacing:0.08em;text-align:center;border-bottom:1px solid var(--border)}
+.jh-topic{padding:4px 8px;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;border-right:1px solid var(--border)}
+.jh-cell{padding:4px 6px;text-align:center;font-size:9px;letter-spacing:0.06em;cursor:default;transition:opacity 0.2s}
+.jh-cell.sig-low{background:rgba(100,240,200,0.06);color:var(--dim)}
+.jh-cell.sig-medium{background:rgba(100,240,200,0.18);color:var(--accent)}
+.jh-cell.sig-high{background:rgba(100,240,200,0.4);color:#03140d;font-weight:700}
+.jh-cell.state-emerging::after{content:'↑';margin-left:2px;color:#69f0ae}
+.jh-cell.state-accelerating::after{content:'⚡';margin-left:2px}
+.jh-cell.state-plateauing::after{content:'→';margin-left:2px;color:var(--dim)}
+.jh-cell.state-declining::after{content:'↓';margin-left:2px;color:#ff5f63}
+.jarvis-meta{display:flex;gap:14px;margin-top:8px;font-family:var(--mono);font-size:10px;color:var(--dim)}
+.jarvis-badge{padding:2px 7px;border:1px solid rgba(100,240,200,0.25);color:var(--accent);font-size:9px;letter-spacing:0.1em}
 /* News label on map */
 .news-icon{fill:rgba(129,212,250,0.8);filter:drop-shadow(0 0 3px rgba(129,212,250,0.4));transition:fill .2s}
 .news-icon:hover{fill:rgba(129,212,250,1)}
@@ -352,6 +368,8 @@ body.low-perf .ticker-wrap::-webkit-scrollbar-thumb{background:rgba(100,240,200,
         <div class="map-popup" id="mapPopup"><button class="pp-close" onclick="closePopup()">&times;</button><div class="pp-head"></div><div class="pp-text"></div><div class="pp-meta"></div></div>
       </div>
       <div class="lower" id="lowerGrid"></div>
+      <!-- JARVIS INTELLIGENCE BRAIN PANEL -->
+      <div id="jarvisPanel"></div>
     </div>
     <div class="col" id="rightRail"></div>
   </div>
@@ -559,6 +577,57 @@ function togglePerfMode(){
     renderLower();
     renderRight();
   }
+}
+
+// === JARVIS PANEL ===
+function renderJarvis() {
+  const container = document.getElementById('jarvisPanel');
+  if (!container) return;
+  // D is the plain global var (line 375 of jarvis.html), not window.__D
+  const J = D?.jarvis;
+  if (!J || !J.heatmap) {
+    container.innerHTML = `<div class="jarvis-panel"><div class="jarvis-title">&#9670; JARVIS — AI SIGNALS</div><div style="color:var(--dim);font-size:11px;margin-top:8px;font-family:var(--mono)">Awaiting first signal sweep...</div></div>`;
+    return;
+  }
+
+  const periods = [30, 60, 90, 180];
+  const stateIcon = { emerging: '↑', accelerating: '⚡', plateauing: '→', declining: '↓' };
+
+  const headerRow = `
+    <div class="jh-header">TOPIC</div>
+    ${periods.map(p => `<div class="jh-header">${p}D</div>`).join('')}
+  `;
+
+  const rows = J.heatmap.map(topic => {
+    const cells = periods.map(p => {
+      const t = topic.periods[p];
+      if (!t) return `<div class="jh-cell sig-low">—</div>`;
+      const lvlClass = `sig-${t.signal_level}`;
+      const stateClass = `state-${t.trend_state}`;
+      const pct = Math.round(t.heatmap_score * 100);
+      return `<div class="jh-cell ${lvlClass} ${stateClass}" title="${t.trend_state} · ${t.signal_level} · score ${pct}%">${pct}%</div>`;
+    }).join('');
+    const badge = topic.latestLevel === 'high' ? `<span class="jarvis-badge">HIGH</span>` : '';
+    return `<div class="jh-topic" title="${topic.summary || topic.name}">${badge}${topic.name}</div>${cells}`;
+  }).join('');
+
+  const { highSignalTopics = 0, acceleratingTopics = 0, topTopic = '' } = J.summary || {};
+
+  container.innerHTML = `
+    <div class="jarvis-panel">
+      <div class="sec-head">
+        <span class="jarvis-title">&#9670; JARVIS — AI SIGNALS</span>
+        <span class="badge">INTELLIGENCE BRAIN</span>
+      </div>
+      <div class="jarvis-heatmap">${headerRow}${rows}</div>
+      <div class="jarvis-meta">
+        <span>&#9670; HIGH SIGNALS: ${highSignalTopics}</span>
+        <span>&#9650; ACCELERATING: ${acceleratingTopics}</span>
+        ${topTopic ? `<span>TOP: ${topTopic}</span>` : ''}
+        <span style="margin-left:auto">${J.timestamp ? new Date(J.timestamp).toLocaleTimeString() : ''}</span>
+      </div>
+    </div>
+  `;
 }
 
 // === TOPBAR ===
@@ -1688,13 +1757,14 @@ function syncResponsiveLayout(force=false){
     renderLeftRail();
     renderLower();
     renderRight();
+    renderJarvis();
   }
   refreshMapViewport(force && !isFlat);
 }
 
 // === REINIT (for live updates without boot sequence) ===
 function reinit(){
-  renderTopbar();renderLeftRail();renderLower();renderRight();
+  renderTopbar();renderLeftRail();renderLower();renderRight();renderJarvis();
   plotMarkers();
 }
 
@@ -1733,7 +1803,7 @@ function connectSSE(){
 // === INIT ===
 let booted = false;
 function init(){
-  renderTopbar();renderLeftRail();renderLower();renderRight();
+  renderTopbar();renderLeftRail();renderLower();renderRight();renderJarvis();
   renderGlossary();
   initMap();
   if (!booted) { runBoot(); booted = true; }

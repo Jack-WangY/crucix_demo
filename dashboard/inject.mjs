@@ -596,6 +596,18 @@ export async function synthesize(data) {
   // Fetch RSS
   const news = await fetchAllNews();
 
+  // Jarvis AI Signals
+  // Note: sources are accessed as data.sources.SourceName (no src() helper exists)
+  const jarvisSource = data.sources?.Jarvis;
+  const jarvis = jarvisSource?.heatmap
+    ? {
+        heatmap: jarvisSource.heatmap,
+        summary: jarvisSource.summary,
+        timestamp: jarvisSource.timestamp,
+        topicsCount: jarvisSource.topicsCount,
+      }
+    : null;
+
   const V2 = {
     meta: data.crucix, air, thermal, tSignals, chokepoints, nuke, nukeSignals,
     airMeta: {
@@ -610,6 +622,7 @@ export async function synthesize(data) {
     tg: { posts: tgData.totalPosts || 0, urgent: tgUrgent, topPosts: tgTop },
     who, fred, energy, metals, bls, treasury, gscpi, defense, noaa, epa, acled, gdelt, space, health, news,
     markets, // Live Yahoo Finance market data
+    jarvis, // Jarvis AI Signals Intelligence Brain
     ideas: [], ideasSource: 'disabled',
     // newsFeed for ticker (merged RSS + GDELT + Telegram)
     newsFeed: buildNewsFeed(news, gdeltData, tgUrgent, tgTop),
