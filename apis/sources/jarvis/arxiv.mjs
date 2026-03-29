@@ -7,7 +7,7 @@ const BASE = 'https://export.arxiv.org/api/query';
 const AI_CATS = ['cs.AI', 'cs.LG', 'cs.CL', 'cs.CV', 'cs.RO', 'stat.ML'];
 
 // Direct XML fetch — safeFetch truncates non-JSON to 500 chars which breaks XML parsing
-async function fetchXml(url, timeoutMs = 25000) {
+async function fetchXml(url, timeoutMs = 8000) {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
   try {
@@ -67,35 +67,20 @@ export async function searchArxiv(query, { dayWindow = 30, maxResults = 20 } = {
   }
 }
 
+async function collectTopic(topic, { dayWindow }) {
+  // Only 1 keyword per topic to stay within timeout budget when running in parallel
+  const queries = topic.keywords.slice(0, 1);
+  const fetched = await Promise.allSettled(queries.map(kw => searchArxiv(kw, { dayWindow })));
+  const valid = fetched.filter(r => r.status === 'fulfilled' && !r.value.error).map(r => r.value);
+  if (valid.length === 0) return null;
+  const avgScore = valid.reduce((s, v) => s + v.normScore, 0) / valid.length;
+  const totalVolume = valid.reduce((s, v) => s + v.total, 0);
+  const topPapers = valid.flatMap(v => v.papers).slice(0, 5);
+  return { topicId: topic.id, source: 'arxiv', score: Math.round(avgScore * 10000) / 10000, volume: totalVolume, rawData: { queries, topPapers, dayWindow } };
+}
+
+// Run all topics in parallel — each capped at 8s, total well under 30s
 export async function collect(topics, { dayWindow = 30 } = {}) {
-  const results = [];
-
-  for (const topic of topics) {
-    const queries = topic.keywords.slice(0, 2); // arXiv API is slower
-    const fetched = await Promise.allSettled(
-      queries.map(kw => searchArxiv(kw, { dayWindow }))
-    );
-
-    const valid = fetched
-      .filter(r => r.status === 'fulfilled' && !r.value.error)
-      .map(r => r.value);
-
-    if (valid.length === 0) continue;
-
-    const avgScore = valid.reduce((s, v) => s + v.normScore, 0) / valid.length;
-    const totalVolume = valid.reduce((s, v) => s + v.total, 0);
-    const topPapers = valid.flatMap(v => v.papers).slice(0, 5);
-
-    results.push({
-      topicId: topic.id,
-      source: 'arxiv',
-      score: Math.round(avgScore * 10000) / 10000,
-      volume: totalVolume,
-      rawData: { queries, topPapers, dayWindow },
-    });
-
-    await new Promise(r => setTimeout(r, 500)); // arXiv rate limit: 1 req/3s recommended
-  }
-
-  return results;
+  const settled = await Promise.allSettled(topics.map(t => collectTopic(t, { dayWindow })));
+  return settled.filter(r => r.status === 'fulfilled' && r.value).map(r => r.value);
 }

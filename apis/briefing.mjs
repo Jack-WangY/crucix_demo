@@ -52,14 +52,17 @@ import { briefing as cisaKev } from './sources/cisa-kev.mjs';
 import { briefing as cloudflareRadar } from './sources/cloudflare-radar.mjs';
 
 const SOURCE_TIMEOUT_MS = 30_000; // 30s max per individual source
+// Jarvis runs parallel network calls across 8 topics × 4 sources — needs more headroom
+const JARVIS_TIMEOUT_MS = 60_000;
 
 export async function runSource(name, fn, ...args) {
   const start = Date.now();
+  const timeoutMs = name === 'Jarvis' ? JARVIS_TIMEOUT_MS : SOURCE_TIMEOUT_MS;
   let timer;
   try {
     const dataPromise = fn(...args);
     const timeoutPromise = new Promise((_, reject) => {
-      timer = setTimeout(() => reject(new Error(`Source ${name} timed out after ${SOURCE_TIMEOUT_MS / 1000}s`)), SOURCE_TIMEOUT_MS);
+      timer = setTimeout(() => reject(new Error(`Source ${name} timed out after ${timeoutMs / 1000}s`)), timeoutMs);
     });
     const data = await Promise.race([dataPromise, timeoutPromise]);
     return { name, status: 'ok', durationMs: Date.now() - start, data };

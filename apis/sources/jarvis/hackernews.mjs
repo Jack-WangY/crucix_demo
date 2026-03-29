@@ -51,37 +51,19 @@ export async function searchHN(query, { dayWindow = 30, maxHits = 50 } = {}) {
  * topics: [{ id, name, keywords: string[] }]
  * Returns array of { topicId, source, score, volume, rawData }
  */
+async function collectTopic(topic, { dayWindow }) {
+  const queries = topic.keywords.slice(0, 3);
+  const fetched = await Promise.allSettled(queries.map(kw => searchHN(kw, { dayWindow })));
+  const valid = fetched.filter(r => r.status === 'fulfilled' && !r.value.error).map(r => r.value);
+  if (valid.length === 0) return null;
+  const avgScore = valid.reduce((s, v) => s + v.normScore, 0) / valid.length;
+  const totalVolume = valid.reduce((s, v) => s + v.total, 0);
+  const topHits = valid.flatMap(v => v.hits).sort((a, b) => b.points - a.points).slice(0, 5);
+  return { topicId: topic.id, source: 'hackernews', score: Math.round(avgScore * 10000) / 10000, volume: totalVolume, rawData: { queries, topHits, dayWindow } };
+}
+
+// Run all topics in parallel — HN Algolia handles concurrent requests fine
 export async function collect(topics, { dayWindow = 30 } = {}) {
-  const results = [];
-
-  for (const topic of topics) {
-    // Use the top 3 keywords to avoid rate limits
-    const queries = topic.keywords.slice(0, 3);
-    const fetched = await Promise.allSettled(
-      queries.map(kw => searchHN(kw, { dayWindow }))
-    );
-
-    const valid = fetched
-      .filter(r => r.status === 'fulfilled' && !r.value.error)
-      .map(r => r.value);
-
-    if (valid.length === 0) continue;
-
-    const avgScore = valid.reduce((s, v) => s + v.normScore, 0) / valid.length;
-    const totalVolume = valid.reduce((s, v) => s + v.total, 0);
-    const topHits = valid.flatMap(v => v.hits).sort((a, b) => b.points - a.points).slice(0, 5);
-
-    results.push({
-      topicId: topic.id,
-      source: 'hackernews',
-      score: Math.round(avgScore * 10000) / 10000,
-      volume: totalVolume,
-      rawData: { queries, topHits, dayWindow },
-    });
-
-    // Polite delay between topics
-    await new Promise(r => setTimeout(r, 300));
-  }
-
-  return results;
+  const settled = await Promise.allSettled(topics.map(t => collectTopic(t, { dayWindow })));
+  return settled.filter(r => r.status === 'fulfilled' && r.value).map(r => r.value);
 }
