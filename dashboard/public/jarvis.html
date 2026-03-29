@@ -395,7 +395,7 @@ let globeInitialized = false;
 let flightsVisible = true;
 let lowPerfMode = localStorage.getItem('crucix_low_perf') === 'true';
 let isFlat = shouldStartFlat();
-let currentRegion = 'world';
+let currentRegion = 'uk';
 let flatSvg, flatProjection, flatPath, flatG, flatZoom, flatW, flatH;
 const signalGuideItems = [
   {
@@ -512,9 +512,10 @@ const signalGuideItems = [
   }
 ];
 const regionPOV = {
+  uk: { lat: 54.5, lng: -3.5, altitude: 0.45 },
   world: { lat: 20, lng: 20, altitude: 1.8 },
-  americas: { lat: 35, lng: -95, altitude: 1.0 },
   europe: { lat: 50, lng: 15, altitude: 1.0 },
+  americas: { lat: 35, lng: -95, altitude: 1.0 },
   middleEast: { lat: 28, lng: 45, altitude: 1.1 },
   asiaPacific: { lat: 25, lng: 110, altitude: 1.2 },
   africa: { lat: 5, lng: 20, altitude: 1.2 }
@@ -562,7 +563,7 @@ function togglePerfMode(){
 
 // === TOPBAR ===
 function getRegionControlsMarkup(){
-  return ['world','americas','europe','middleEast','asiaPacific','africa'].map(r=>
+  return ['uk','europe','world','americas','middleEast','asiaPacific','africa'].map(r=>
     `<button class="region-btn ${r===currentRegion?'active':''}" data-region="${r}" onclick="setRegion('${r}')">${r==='middleEast'?'MIDDLE EAST':r==='asiaPacific'?'ASIA PACIFIC':r.toUpperCase()}</button>`
   ).join('');
 }
@@ -798,7 +799,7 @@ function initGlobe(){
   });
 
   // Set initial POV
-  globe.pointOfView(regionPOV.world, 0);
+  globe.pointOfView(regionPOV.uk, 0);
 
   // Auto-rotate slowly
   globe.controls().autoRotate = !lowPerfMode;
@@ -1124,8 +1125,8 @@ function toggleFlights() {
 
 // === FLAT/GLOBE TOGGLE ===
 const flatRegionBounds = {
-  world:[[-180,-60],[180,80]], americas:[[-130,10],[-60,55]], europe:[[-12,34],[45,72]],
-  middleEast:[[24,10],[65,45]], asiaPacific:[[60,-12],[180,55]], africa:[[-20,-36],[55,38]]
+  uk:[[-11,49],[2,61]], world:[[-180,-60],[180,80]], europe:[[-12,34],[45,72]],
+  americas:[[-130,10],[-60,55]], middleEast:[[24,10],[65,45]], asiaPacific:[[60,-12],[180,55]], africa:[[-20,-36],[55,38]]
 };
 
 function toggleMapMode(){
@@ -1297,6 +1298,7 @@ function setRegion(r){
   closePopup();
   if(isFlat && flatSvg && flatZoom){
     if(r==='world'){flatSvg.transition().duration(750).call(flatZoom.transform,d3.zoomIdentity);return;}
+    if(!flatRegionBounds[r]){flatSvg.transition().duration(750).call(flatZoom.transform,d3.zoomIdentity);return;}
     const bounds=flatRegionBounds[r];
     const p0=flatProjection(bounds[0]),p1=flatProjection(bounds[1]);if(!p0||!p1)return;
     const dx=Math.abs(p1[0]-p0[0]),dy=Math.abs(p1[1]-p0[1]);

@@ -6,21 +6,29 @@ import { safeFetch } from '../utils/fetch.mjs';
 
 const BASE = 'https://query1.finance.yahoo.com/v8/finance/chart';
 
-// Symbols to track — covers broad market, rates, commodities, crypto, volatility
+// Symbols to track — UK-focused market, rates, commodities, crypto, volatility
 const SYMBOLS = {
-  // Indexes / ETFs
-  SPY: 'S&P 500',
-  QQQ: 'Nasdaq 100',
-  DIA: 'Dow Jones',
-  IWM: 'Russell 2000',
-  // Rates / Credit
-  TLT: '20Y+ Treasury',
-  HYG: 'High Yield Corp',
-  LQD: 'IG Corporate',
-  // Commodities
+  // UK Indexes
+  '^FTSE': 'FTSE 100',
+  '^FTMC': 'FTSE 250',
+  // UK Blue-Chip Stocks (LSE)
+  'BP.L': 'BP',
+  'SHEL.L': 'Shell',
+  'HSBA.L': 'HSBC',
+  'AZN.L': 'AstraZeneca',
+  'GSK.L': 'GSK',
+  'ULVR.L': 'Unilever',
+  'LLOY.L': 'Lloyds',
+  'BARC.L': 'Barclays',
+  'RIO.L': 'Rio Tinto',
+  'VOD.L': 'Vodafone',
+  // GBP FX
+  'GBPUSD=X': 'GBP/USD',
+  'GBPEUR=X': 'GBP/EUR',
+  // UK Gilts proxy
+  'IGLT.L': 'UK Gilts ETF',
+  // Commodities (relevant to UK energy & industry)
   'GC=F': 'Gold',
-  'SI=F': 'Silver',
-  'CL=F': 'WTI Crude',
   'BZ=F': 'Brent Crude',
   'NG=F': 'Natural Gas',
   // Crypto
@@ -117,9 +125,11 @@ export async function collect() {
       failed,
       timestamp: new Date().toISOString(),
     },
-    indexes: pickGroup(quotes, ['SPY', 'QQQ', 'DIA', 'IWM']),
-    rates: pickGroup(quotes, ['TLT', 'HYG', 'LQD']),
-    commodities: pickGroup(quotes, ['GC=F', 'SI=F', 'CL=F', 'BZ=F', 'NG=F']),
+    indexes: pickGroup(quotes, ['^FTSE', '^FTMC']),
+    ukStocks: pickGroup(quotes, ['BP.L', 'SHEL.L', 'HSBA.L', 'AZN.L', 'GSK.L', 'ULVR.L', 'LLOY.L', 'BARC.L', 'RIO.L', 'VOD.L']),
+    fx: pickGroup(quotes, ['GBPUSD=X', 'GBPEUR=X']),
+    rates: pickGroup(quotes, ['IGLT.L']),
+    commodities: pickGroup(quotes, ['GC=F', 'BZ=F', 'NG=F']),
     crypto: pickGroup(quotes, ['BTC-USD', 'ETH-USD']),
     volatility: pickGroup(quotes, ['^VIX']),
   };

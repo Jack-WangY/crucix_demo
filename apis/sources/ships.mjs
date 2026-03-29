@@ -10,17 +10,20 @@ import { safeFetch } from '../utils/fetch.mjs';
 // MarineTraffic-style density estimation via public endpoints
 // The real power comes from running a persistent WebSocket listener
 
-// Key maritime chokepoints to monitor
+// UK & adjacent maritime chokepoints and key waters
 const CHOKEPOINTS = {
-  straitOfHormuz: { label: 'Strait of Hormuz', lat: 26.5, lon: 56.5, note: '20% of world oil' },
-  suezCanal: { label: 'Suez Canal', lat: 30.5, lon: 32.3, note: '12% of world trade' },
-  straitOfGibraltar: { label: 'Strait of Gibraltar', lat: 36.0, lon: -5.7, note: 'Gateway to Mediterranean, ~10-20% global trade influence' },
-  straitOfMalacca: { label: 'Strait of Malacca', lat: 2.5, lon: 101.5, note: '25% of world trade' },
-  babElMandeb: { label: 'Bab el-Mandeb', lat: 12.6, lon: 43.3, note: 'Red Sea gateway' },
-  taiwanStrait: { label: 'Taiwan Strait', lat: 24.0, lon: 119.0, note: '88% of largest container ships' },
-  bosporusStrait: { label: 'Bosphorus', lat: 41.1, lon: 29.1, note: 'Black Sea access' },
-  panamaCanal: { label: 'Panama Canal', lat: 9.1, lon: -79.7, note: '5% of world trade' },
-  capeOfGoodHope: { label: 'Cape of Good Hope', lat: -34.4, lon: 18.5, note: 'Suez alternative' },
+  doverStrait: { label: 'Dover Strait', lat: 51.0, lon: 1.5, note: 'Busiest shipping lane — 400+ vessels/day' },
+  englishChannel: { label: 'English Channel', lat: 50.0, lon: -2.5, note: 'Atlantic–North Sea gateway' },
+  northSea: { label: 'North Sea', lat: 56.5, lon: 3.0, note: 'UK oil & gas infrastructure hub' },
+  irishSea: { label: 'Irish Sea', lat: 53.5, lon: -4.5, note: 'UK–Ireland trade corridor' },
+  thamesEstuary: { label: 'Thames Estuary', lat: 51.5, lon: 0.8, note: 'Port of London access — UK\'s busiest port complex' },
+  forthEstuary: { label: 'Firth of Forth', lat: 56.1, lon: -3.0, note: 'Rosyth naval base & Edinburgh port' },
+  clydeEstuary: { label: 'Firth of Clyde', lat: 55.8, lon: -4.9, note: 'HMNB Clyde — Trident submarine base' },
+  portsmouthApproach: { label: 'Solent / Portsmouth', lat: 50.8, lon: -1.3, note: 'HMNB Portsmouth — primary Royal Navy base' },
+  // Global chokepoints with UK trade relevance
+  straitOfGibraltar: { label: 'Strait of Gibraltar', lat: 36.0, lon: -5.7, note: 'UK trade gateway to Mediterranean' },
+  suezCanal: { label: 'Suez Canal', lat: 30.5, lon: 32.3, note: '12% of world trade; UK import route' },
+  straitOfHormuz: { label: 'Strait of Hormuz', lat: 26.5, lon: 56.5, note: '20% of world oil; UK energy exposure' },
 };
 
 // For non-realtime briefing, use web-searchable vessel data

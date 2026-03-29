@@ -42,6 +42,7 @@ import { briefing as space } from './sources/space.mjs';
 
 // === Tier 5: Live Market Data ===
 import { briefing as yfinance } from './sources/yfinance.mjs';
+import { briefing as ukgov } from './sources/ukgov.mjs';
 
 // === Tier 6: Cyber & Infrastructure ===
 import { briefing as cisaKev } from './sources/cisa-kev.mjs';
@@ -67,7 +68,7 @@ export async function runSource(name, fn, ...args) {
 }
 
 export async function fullBriefing() {
-  console.error('[Crucix] Starting intelligence sweep — 29 sources...');
+  console.error('[Crucix] Starting intelligence sweep — 30 sources...');
   const start = Date.now();
 
   const allPromises = [
@@ -105,8 +106,9 @@ export async function fullBriefing() {
     // Tier 4: Space & Satellites
     runSource('Space', space),
 
-    // Tier 5: Live Market Data
+    // Tier 5: Live Market Data & UK Publications
     runSource('YFinance', yfinance),
+    runSource('GOV.UK', ukgov),
 
     // Tier 6: Cyber & Infrastructure
     runSource('CISA-KEV', cisaKev),
